@@ -25,9 +25,16 @@ Every post is judged by <a href="https://openrouter.ai/~typesafe/jev-latest">Jev
 | **Broetry & humblebrags** | "Yesterday I fired my best employee. Here's why." | On |
 | **Rage bait** | Inflammatory hot takes written to farm angry replies | Off |
 | **Your own rules** | Anything you describe in plain English, e.g. *"Crypto or memecoin promotion"* | — |
+| **Allow-only niche** | Hide unless the post matches your allowed topics (whitelist). Fail-closed on errors. | On (this fork) |
 | **Countries / regions** | Accounts based in countries or regions you pick | — |
 
 Plus muted words, an allowlist of accounts that are never hidden, and optional hiding of promoted posts.
+
+### Allow-only niche (fork)
+
+Stock Deslop only *blacklists* slop. Custom rules ask “does this post fit X?” — so “not about Japanese…” does not work.
+
+This fork adds **Allow-only niche** in Settings: Jev scores whether the post matches your topics; posts below the strictness bar are hidden. Default topics target Japanese learning / life in Japan. Strictness raise the *keep* bar (relaxed ≥50%, balanced ≥65%, strict ≥80%). Slop categories still apply to posts that pass.
 
 ## How it works
 

@@ -56,12 +56,21 @@ async function classify(post) {
 
   if (settings.hidePromoted && post.promoted) return verdict([{ id: 'promoted', label: 'Promoted', value: 1 }]);
 
-  if (!hasEnoughText(post)) return { hide: false, skipped: 'too-short' };
+  const allowOnlyOn = Boolean(settings.allowOnly?.enabled && settings.allowOnly?.topics?.trim());
+
+  if (!hasEnoughText(post)) {
+    // Allow-only is fail-closed: short posts can't prove niche match.
+    if (allowOnlyOn) return verdict([{ id: 'allow_only', label: 'Outside allow-only niche (too short)', value: 0 }]);
+    return { hide: false, skipped: 'too-short' };
+  }
 
   const apiKey = await getApiKey();
-  if (!apiKey) return { hide: false, skipped: 'no-key' };
+  if (!apiKey) {
+    if (allowOnlyOn) return verdict([{ id: 'allow_only', label: 'Allow-only: no API key (hidden)', value: 0 }]);
+    return { hide: false, skipped: 'no-key' };
+  }
 
-  const qhash = questionsHash(settings.customRules);
+  const qhash = questionsHash(settings.customRules, settings.allowOnly);
   const cacheKey = `${post.platform}:${post.key}:${qhash}`;
   let answers = await answersCache.get(cacheKey);
 
@@ -72,7 +81,7 @@ async function classify(post) {
           apiKey,
           model: settings.model || DEFAULT_MODEL,
           state: buildState(post),
-          questions: buildQuestions(settings.customRules),
+          questions: buildQuestions(settings.customRules, settings.allowOnly),
         }),
       )
         .then(async (res) => {
@@ -87,6 +96,9 @@ async function classify(post) {
       answers = await inflight.get(cacheKey);
     } catch (err) {
       await recordError(err);
+      if (allowOnlyOn) {
+        return verdict([{ id: 'allow_only', label: 'Allow-only: check failed (hidden)', value: 0 }]);
+      }
       return { hide: false, skipped: 'error', error: err.message };
     }
   }

@@ -1,6 +1,8 @@
-import { loadSettings, saveSettings, getApiKey, setApiKey, DEFAULT_SETTINGS } from '../lib/settings.js';
+import { loadSettings, saveSettings, getApiKey, setApiKey, DEFAULT_SETTINGS, DEFAULT_ALLOW_ONLY_TOPICS } from '../lib/settings.js';
 import { CATEGORIES, THRESHOLDS } from '../lib/questions.js';
 import { COUNTRIES, REGIONS, getCountry, getRegion } from '../lib/countries.js';
+
+// Older installs may lack allowOnly; mergeDeep keeps nested defaults.
 
 const $ = (id) => document.getElementById(id);
 let settings = await loadSettings();
@@ -91,7 +93,11 @@ function renderStrictness() {
     b.setAttribute('aria-pressed', String(b.dataset.value === settings.strictness));
   }
   const t = THRESHOLDS[settings.strictness];
-  $('strictnessHelp').textContent = `${STRICTNESS_HELP[settings.strictness]} (hides at ≥${Math.round(t.default * 100)}% confidence)`;
+  let help = `${STRICTNESS_HELP[settings.strictness]} (slop hides at ≥${Math.round(t.default * 100)}% confidence)`;
+  if (settings.allowOnly?.enabled) {
+    help += `. Allow-only keeps posts at ≥${Math.round((t.allowOnly ?? 0.65) * 100)}% niche match.`;
+  }
+  $('strictnessHelp').textContent = help;
 }
 $('strictness').addEventListener('click', (e) => {
   const value = e.target.closest('button')?.dataset.value;
@@ -101,6 +107,22 @@ $('strictness').addEventListener('click', (e) => {
   save();
 });
 renderStrictness();
+
+// Ensure nested allowOnly exists for upgrades from 0.1.x
+if (!settings.allowOnly) {
+  settings.allowOnly = structuredClone(DEFAULT_SETTINGS.allowOnly);
+}
+settings.allowOnly.topics ||= DEFAULT_ALLOW_ONLY_TOPICS;
+
+bindToggle('allowOnlyEnabled', () => settings.allowOnly.enabled, (v) => {
+  settings.allowOnly.enabled = v;
+  renderStrictness();
+});
+$('allowOnlyTopics').value = settings.allowOnly.topics;
+$('allowOnlyTopics').addEventListener('input', () => {
+  settings.allowOnly.topics = $('allowOnlyTopics').value.trim() || DEFAULT_ALLOW_ONLY_TOPICS;
+  save();
+});
 
 bindToggle('platform-x', () => settings.platforms.x, (v) => (settings.platforms.x = v));
 bindToggle('platform-linkedin', () => settings.platforms.linkedin, (v) => (settings.platforms.linkedin = v));

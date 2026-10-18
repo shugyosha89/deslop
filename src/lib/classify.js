@@ -1,7 +1,7 @@
 // Turns an extracted post into a Jev request, and Jev's answers into a verdict.
 // Pure functions only (no chrome.* APIs) so the test harness can import them.
 
-import { QUESTIONS, CATEGORIES, THRESHOLDS, customRuleQuestion } from './questions.js';
+import { QUESTIONS, CATEGORIES, THRESHOLDS, customRuleQuestion, allowOnlyQuestion } from './questions.js';
 
 const PLATFORM_NAMES = { x: 'X (Twitter)', linkedin: 'LinkedIn' };
 const MAX_TEXT = 4000;
@@ -23,24 +23,42 @@ export function buildState(post) {
   return state;
 }
 
-export function buildQuestions(customRules = []) {
+export function buildQuestions(customRules = [], allowOnly = null) {
   const questions = { ...QUESTIONS };
   customRules.forEach((rule, i) => {
     questions[`custom_${i}`] = customRuleQuestion(rule);
   });
+  if (allowOnly?.enabled && allowOnly.topics?.trim()) {
+    questions.allow_only = allowOnlyQuestion(allowOnly.topics.trim());
+  }
   return questions;
 }
 
 // Changes whenever the question set changes, so cached answers from an older
 // question set are not reused.
-export function questionsHash(customRules = []) {
-  return fnv1a(JSON.stringify(buildQuestions(customRules)));
+export function questionsHash(customRules = [], allowOnly = null) {
+  return fnv1a(JSON.stringify(buildQuestions(customRules, allowOnly)));
 }
 
 export function verdictFrom(answers, settings) {
   const strictness = THRESHOLDS[settings.strictness] ? settings.strictness : 'balanced';
   const t = THRESHOLDS[strictness];
   const signals = [];
+
+  if (settings.allowOnly?.enabled && settings.allowOnly.topics?.trim()) {
+    const a = answers.allow_only;
+    const value = a && a.type === 'noul' ? a.noul : 0;
+    const keepAt = t.allowOnly ?? 0.65;
+    // Inverse of blacklist categories: hide when niche match is *below* the bar.
+    signals.push({
+      id: 'allow_only',
+      label: `Outside allow-only niche (${Math.round(value * 100)}% match)`,
+      value,
+      threshold: keepAt,
+      enabled: true,
+      hit: value < keepAt,
+    });
+  }
 
   for (const cat of CATEGORIES) {
     const value = cat.value(answers);
