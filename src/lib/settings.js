@@ -4,6 +4,9 @@
 import { CATEGORIES } from './questions.js';
 import { DEFAULT_MODEL } from './jev.js';
 
+export const DEFAULT_ALLOW_ONLY_TOPICS =
+  'learning Japanese, Japanese language study tools or methods, or practical self-improvement and daily life as an expat or professional in Japan';
+
 export const DEFAULT_SETTINGS = {
   enabled: true,
   platforms: { x: true, linkedin: true },
@@ -15,6 +18,11 @@ export const DEFAULT_SETTINGS = {
   mutedWords: [],
   allowlist: [],
   hidePromoted: false,
+  // Allow-only: hide unless Jev says the post matches allowedTopics (fail closed).
+  allowOnly: {
+    enabled: true,
+    topics: DEFAULT_ALLOW_ONLY_TOPICS,
+  },
   countries: {
     blocked: [], // ISO codes ("IN") and region ids ("region:europe")
     includeRegions: false,

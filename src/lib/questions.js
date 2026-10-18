@@ -231,6 +231,40 @@ export function customRuleQuestion(rule) {
   };
 }
 
+// Allow-only: positive niche match. Code hides when the probability is *below*
+// the allowOnly threshold (inverse of custom hide-rules).
+export function allowOnlyQuestion(allowedTopics) {
+  return {
+    type: 'noul',
+    instructions: {
+      allowed_topics: allowedTopics,
+      question: "Is `post` primarily about or clearly useful for the user's `allowed_topics`?",
+      focus:
+        "Answer yes only when the post's main subject matches the allowed topics. Generic life chatter, other hobbies, unrelated tech, news, philosophy, or entertainment do not count even if mildly interesting.",
+    },
+    criteria: {
+      true: {
+        what: 'Mainly about the allowed topics',
+        examples: [
+          'A tip for remembering Japanese pitch accent',
+          'Review of a JLPT study method or Japanese immersion tool such as Migaku',
+          'Practical advice for living or working in Japan as a foreigner',
+        ],
+      },
+      false: {
+        what: 'Off-topic for the allowed topics',
+        examples: [
+          'Video games, phones, or general tech nostalgia',
+          'Western news or human-interest tragedy',
+          'Generic motivational quotes with no Japan or Japanese-learning content',
+          'Unrelated programming or game-engine reminiscing',
+          'Stirring tea, random polls, or Threads meta commentary',
+        ],
+      },
+    },
+  };
+}
+
 // Categories are what the user sees and toggles. Each one turns raw answers
 // into a single 0..1 value that is compared against the strictness threshold.
 export const CATEGORIES = [
@@ -283,9 +317,10 @@ export const CATEGORIES = [
 // ai_generated is a Score (0 = clearly human … 3 = unmistakably AI) mapped to
 // 0..1, so 0.67 means "Likely AI-generated" on average.
 export const THRESHOLDS = {
-  relaxed: { default: 0.9, ai_generated: 0.8, custom: 0.85 },
-  balanced: { default: 0.8, ai_generated: 0.67, custom: 0.75 },
-  strict: { default: 0.65, ai_generated: 0.55, custom: 0.6 },
+  // allowOnly = minimum niche-match probability to *keep* a post (higher = stricter feed).
+  relaxed: { default: 0.9, ai_generated: 0.8, custom: 0.85, allowOnly: 0.5 },
+  balanced: { default: 0.8, ai_generated: 0.67, custom: 0.75, allowOnly: 0.65 },
+  strict: { default: 0.65, ai_generated: 0.55, custom: 0.6, allowOnly: 0.8 },
 };
 
 // Choosing which blocked country a free-text location (e.g. a LinkedIn

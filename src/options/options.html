@@ -39,6 +39,23 @@
     </section>
 
     <section class="card">
+      <h2>Allow-only niche</h2>
+      <p class="muted">When on, Deslop <b>hides every post that is not clearly about your topics</b>
+        (whitelist). Slop categories and custom hide-rules still apply to posts that pass.
+        Fail-closed: API errors and too-short posts are hidden.</p>
+      <div class="toggles">
+        <label class="toggle">
+          <span class="switch"><input type="checkbox" id="allowOnlyEnabled"><span></span></span>
+          <span><b>Only show posts in my niche</b><small>Jev scores niche match; hide below the strictness bar</small></span>
+        </label>
+      </div>
+      <label class="field">Allowed topics
+        <textarea id="allowOnlyTopics" rows="3" placeholder="e.g. learning Japanese, JLPT methods, life as an expat in Japan"></textarea>
+      </label>
+      <p class="muted small">Describe what <em>may</em> appear. Everything else is hidden. Edit freely; Clear cache after big changes.</p>
+    </section>
+
+    <section class="card">
       <h2>What to hide</h2>
       <div id="categories" class="toggles"></div>
 

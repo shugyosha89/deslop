@@ -145,9 +145,49 @@ await test('custom rules become questions and reasons', () => {
   eq(v.reasons.map((r) => r.label), ['Crypto shilling']);
 });
 
+await test('allow-only hides below niche threshold and keeps above', () => {
+  const allow = { enabled: true, topics: 'learning Japanese' };
+  const q = buildQuestions([], allow);
+  eq(q.allow_only.type, 'noul');
+  eq(q.allow_only.instructions.allowed_topics, 'learning Japanese');
+  const low = verdictFrom(answers({ extra: { allow_only: { type: 'noul', noul: 0.2 } } }), {
+    ...base,
+    allowOnly: allow,
+  });
+  eq(low.hide, true);
+  eq(low.reasons[0].id, 'allow_only');
+  const high = verdictFrom(answers({ extra: { allow_only: { type: 'noul', noul: 0.9 } } }), {
+    ...base,
+    allowOnly: allow,
+  });
+  eq(high.hide, false);
+  // Strict raises the keep bar (0.8): 0.7 is not enough.
+  const midStrict = verdictFrom(answers({ extra: { allow_only: { type: 'noul', noul: 0.7 } } }), {
+    ...base,
+    strictness: 'strict',
+    allowOnly: allow,
+  });
+  eq(midStrict.hide, true);
+});
+
+await test('allow-only missing answer fails closed', () => {
+  const v = verdictFrom(answers({}), {
+    ...base,
+    allowOnly: { enabled: true, topics: 'learning Japanese' },
+  });
+  eq(v.hide, true);
+  eq(v.reasons[0].id, 'allow_only');
+});
+
 await test('question hash changes with custom rules', () => {
   if (questionsHash([]) === questionsHash(['x'])) throw new Error('hash unchanged');
   eq(questionsHash(['a']), questionsHash(['a']));
+});
+
+await test('question hash changes when allow-only toggles', () => {
+  const off = questionsHash([]);
+  const on = questionsHash([], { enabled: true, topics: 'learning Japanese' });
+  if (off === on) throw new Error('hash unchanged for allow-only');
 });
 
 await test('state includes only relevant fields', () => {
